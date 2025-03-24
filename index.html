@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Symbol Matching Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         .container {
             text-align: center;
@@ -9,39 +10,40 @@
             padding: 20px;
         }
         .target {
-            font-size: 36px;
+            font-size: 8vw; /* 適應手機螢幕 */
             margin: 20px;
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(3, 80px);
+            grid-template-columns: repeat(3, 20vw); /* 使用視窗寬度單位 */
             gap: 5px;
             margin: 20px auto;
-            width: 260px;
+            width: 60vw; /* 總寬度適應螢幕 */
         }
         .cell {
-            width: 80px;
-            height: 80px;
+            width: 20vw;
+            height: 20vw; /* 保持正方形 */
             border: 1px solid #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 8vw; /* 字體大小適應螢幕 */
             cursor: pointer;
+            touch-action: manipulation; /* 提升觸控響應 */
         }
         .selected {
             background-color: #e0e0e0;
         }
         .score {
             margin: 10px;
-            font-size: 18px;
+            font-size: 4vw; /* 適應手機螢幕 */
         }
         .button-container {
             margin-top: 20px;
         }
         button {
             padding: 10px 20px;
-            font-size: 16px;
+            font-size: 4vw; /* 適應手機螢幕 */
             cursor: pointer;
             margin: 0 10px;
         }
@@ -66,6 +68,7 @@
         let selectedCells = [];
         let symbolsVisible = false;
         let cellContents = [];
+        let isProcessing = false; // 防抖旗標
 
         const target = document.getElementById('target');
         const scoreDisplay = document.getElementById('score');
@@ -97,7 +100,6 @@
             toggleCell(key);
         }
 
-        // 新增函數來處理格子切換邏輯
         function toggleCell(key) {
             if (selectedCells.includes(key)) {
                 selectedCells = selectedCells.filter(k => k !== key);
@@ -152,6 +154,9 @@
         }
 
         function checkInput(key) {
+            if (isProcessing) return; // 防抖：若正在處理則忽略
+            isProcessing = true;
+            setTimeout(() => { isProcessing = false; }, 200); // 200ms 冷卻時間
             if (parseInt(key) === currentKey) {
                 score++;
                 scoreDisplay.textContent = `得分: ${score}`;
@@ -170,14 +175,10 @@
             symbolsVisible = !symbolsVisible;
             toggleButton.textContent = symbolsVisible ? '隱藏圖案' : '顯示圖案';
             const activeCells = cells.filter(cell => !selectedCells.includes(parseInt(cell.dataset.key)));
-            if (symbolsVisible) {
-                activeCells.forEach(cell => {
-                    const content = cellContents.find(c => c.key === parseInt(cell.dataset.key));
-                    cell.textContent = content ? content.symbol : '';
-                });
-            } else {
-                activeCells.forEach(cell => cell.textContent = '');
-            }
+            activeCells.forEach(cell => {
+                const content = cellContents.find(c => c.key === parseInt(cell.dataset.key));
+                cell.textContent = symbolsVisible && content ? content.symbol : '';
+            });
         }
 
         function gameOver() {
@@ -199,19 +200,18 @@
         startButton.addEventListener('click', startGame);
         toggleButton.addEventListener('click', toggleSymbols);
 
-        // 修改鍵盤事件監聽
         document.addEventListener('keydown', (e) => {
-            if (startButton.style.display !== 'none') { // 遊戲未開始
+            if (startButton.style.display !== 'none') {
                 if (e.key === 'Enter' || e.key === '0') {
-                    startGame(); // Enter 或 0 開始遊戲
+                    startGame();
                 } else if (e.key >= '1' && e.key <= '9') {
-                    toggleCell(parseInt(e.key)); // 1-9 切換格子
+                    toggleCell(parseInt(e.key));
                 }
-            } else { // 遊戲進行中
+            } else {
                 if (e.key === 'Enter' || e.key === '0') {
-                    toggleSymbols(); // Enter 或 0 顯示/隱藏圖案
+                    toggleSymbols();
                 } else if (e.key >= '1' && e.key <= '9') {
-                    checkInput(e.key); // 1-9 用於回答
+                    checkInput(e.key);
                 }
             }
         });
