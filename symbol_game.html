@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Symbol Matching Game</title>
+    <style>
+        .container {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .target {
+            font-size: 36px;
+            margin: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 5px;
+            margin: 20px auto;
+            width: 260px;
+        }
+        .cell {
+            width: 80px;
+            height: 80px;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            cursor: pointer;
+        }
+        .selected {
+            background-color: #e0e0e0;
+        }
+        .score {
+            margin: 10px;
+            font-size: 18px;
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="target" id="target"></div>
+        <div class="score" id="score">得分: 0</div>
+        <div class="grid" id="grid"></div>
+        <div class="button-container">
+            <button id="startButton">開始遊戲</button>
+            <button id="toggleButton" style="display: none;">顯示圖案</button>
+        </div>
+    </div>
+
+    <script>
+        const symbols = ['★', '●', '▲', '▼', '◆', '◇', '■', '□', '❖'];
+        let score = 0;
+        let currentKey = 0;
+        let cells = [];
+        let selectedCells = [];
+        let symbolsVisible = false;
+        let cellContents = [];
+
+        const target = document.getElementById('target');
+        const scoreDisplay = document.getElementById('score');
+        const grid = document.getElementById('grid');
+        const startButton = document.getElementById('startButton');
+        const toggleButton = document.getElementById('toggleButton');
+
+        function createGrid() {
+            grid.innerHTML = '';
+            cells = [];
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                const key = i < 3 ? 7 + i : i < 6 ? 4 + (i-3) : 1 + (i-6);
+                cell.dataset.key = key;
+                cell.textContent = key;
+                cell.addEventListener('click', toggleCellSelection);
+                if (selectedCells.includes(key)) {
+                    cell.classList.add('selected');
+                }
+                grid.appendChild(cell);
+                cells.push(cell);
+            }
+        }
+
+        function toggleCellSelection(event) {
+            const cell = event.target;
+            const key = parseInt(cell.dataset.key);
+            toggleCell(key);
+        }
+
+        // 新增函數來處理格子切換邏輯
+        function toggleCell(key) {
+            if (selectedCells.includes(key)) {
+                selectedCells = selectedCells.filter(k => k !== key);
+                cells.find(cell => parseInt(cell.dataset.key) === key).classList.remove('selected');
+            } else {
+                selectedCells.push(key);
+                cells.find(cell => parseInt(cell.dataset.key) === key).classList.add('selected');
+            }
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function initializeGame() {
+            if (selectedCells.length === 9) {
+                alert('請至少保留一個格子參與遊戲！');
+                return;
+            }
+
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.removeEventListener('click', toggleCellSelection);
+                if (!selectedCells.includes(parseInt(cell.dataset.key))) {
+                    cell.addEventListener('click', handleCellClick);
+                }
+            });
+
+            const activeCells = cells.filter(cell => !selectedCells.includes(parseInt(cell.dataset.key)));
+            const shuffledSymbols = shuffle([...symbols]).slice(0, activeCells.length);
+            cellContents = [];
+            activeCells.forEach((cell, index) => {
+                cellContents.push({ key: parseInt(cell.dataset.key), symbol: shuffledSymbols[index] });
+                cell.textContent = '';
+            });
+
+            toggleButton.style.display = 'inline-block';
+            toggleButton.textContent = '顯示圖案';
+            symbolsVisible = false;
+            nextSymbol();
+        }
+
+        function nextSymbol() {
+            const activeCells = cells.filter(cell => !selectedCells.includes(parseInt(cell.dataset.key)));
+            const randomIndex = Math.floor(Math.random() * activeCells.length);
+            currentKey = parseInt(activeCells[randomIndex].dataset.key);
+            target.textContent = cellContents.find(cell => cell.key === currentKey).symbol;
+        }
+
+        function checkInput(key) {
+            if (parseInt(key) === currentKey) {
+                score++;
+                scoreDisplay.textContent = `得分: ${score}`;
+                nextSymbol();
+            } else {
+                gameOver();
+            }
+        }
+
+        function handleCellClick(event) {
+            const key = parseInt(event.target.dataset.key);
+            checkInput(key);
+        }
+
+        function toggleSymbols() {
+            symbolsVisible = !symbolsVisible;
+            toggleButton.textContent = symbolsVisible ? '隱藏圖案' : '顯示圖案';
+            const activeCells = cells.filter(cell => !selectedCells.includes(parseInt(cell.dataset.key)));
+            if (symbolsVisible) {
+                activeCells.forEach(cell => {
+                    const content = cellContents.find(c => c.key === parseInt(cell.dataset.key));
+                    cell.textContent = content ? content.symbol : '';
+                });
+            } else {
+                activeCells.forEach(cell => cell.textContent = '');
+            }
+        }
+
+        function gameOver() {
+            alert(`遊戲結束！最終得分: ${score}`);
+            target.textContent = '';
+            cells.forEach(cell => cell.textContent = '');
+            startButton.style.display = 'inline-block';
+            toggleButton.style.display = 'none';
+            createGrid();
+        }
+
+        function startGame() {
+            score = 0;
+            scoreDisplay.textContent = `得分: ${score}`;
+            startButton.style.display = 'none';
+            initializeGame();
+        }
+
+        startButton.addEventListener('click', startGame);
+        toggleButton.addEventListener('click', toggleSymbols);
+
+        // 修改鍵盤事件監聽
+        document.addEventListener('keydown', (e) => {
+            if (startButton.style.display !== 'none') { // 遊戲未開始
+                if (e.key === 'Enter' || e.key === '0') {
+                    startGame(); // Enter 或 0 開始遊戲
+                } else if (e.key >= '1' && e.key <= '9') {
+                    toggleCell(parseInt(e.key)); // 1-9 切換格子
+                }
+            } else { // 遊戲進行中
+                if (e.key === 'Enter' || e.key === '0') {
+                    toggleSymbols(); // Enter 或 0 顯示/隱藏圖案
+                } else if (e.key >= '1' && e.key <= '9') {
+                    checkInput(e.key); // 1-9 用於回答
+                }
+            }
+        });
+
+        createGrid();
+    </script>
+</body>
+</html>
